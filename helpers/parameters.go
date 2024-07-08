@@ -3,14 +3,10 @@ package pgghelpers
 import (
 	"flag"
 	"fmt"
+
 	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"
 	ggdescriptor "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/descriptor"
 	"google.golang.org/protobuf/compiler/protogen"
-)
-
-const (
-	boolTrue  = "true"
-	boolFalse = "false"
 )
 
 type Parameters struct {
@@ -72,7 +68,7 @@ func ParseParams(plugin *protogen.Plugin, file *protogen.File) {
 	}
 
 	if params.FileMode {
-		if s := file.Proto.GetService(); s != nil && len(s) > 0 {
+		if s := file.Proto.GetService(); len(s) > 0 {
 			encoder := NewGenericTemplateBasedEncoder(params.TemplateDir, file, params.Debug, params.DestinationDir)
 			for _, tmpl := range encoder.Files() {
 				concatOrAppend(tmpl)

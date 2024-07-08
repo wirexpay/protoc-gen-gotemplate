@@ -338,15 +338,33 @@ func getFieldType(f *protogen.Field) string {
 		fieldType += "[]"
 	}
 
-	k := f.Desc.Kind()
-
-	switch k {
+	switch f.Desc.Kind() {
+	case protoreflect.BoolKind:
+		fieldType += "bool"
+	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
+		fieldType += "int32"
+	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
+		fieldType += "int64"
+	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
+		fieldType += "uint32"
+	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
+		fieldType += "uint64"
+	case protoreflect.FloatKind:
+		fieldType += "float32"
+	case protoreflect.DoubleKind:
+		fieldType += "float64"
+	case protoreflect.StringKind:
+		fieldType += "string"
+	case protoreflect.BytesKind:
+		fieldType += "[]byte"
 	case protoreflect.MessageKind:
 		fieldType += fmt.Sprintf("*%s", f.Message.Desc.Name())
 	case protoreflect.EnumKind:
 		fieldType += string(f.Enum.Desc.Name())
+	case protoreflect.GroupKind:
+		fieldType += "group"
 	default:
-		fieldType += k.String()
+		fieldType += "unknown"
 	}
 
 	return strings.ReplaceAll(fieldType, "**", "*")

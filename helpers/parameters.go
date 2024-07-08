@@ -1,12 +1,11 @@
 package pgghelpers
 
 import (
-	"log"
-	"strings"
-
-	"github.com/golang/protobuf/protoc-gen-go/generator" // nolint:staticcheck
+	"flag"
+	"fmt"
 	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"
 	ggdescriptor "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/descriptor"
+	"google.golang.org/protobuf/compiler/protogen"
 )
 
 const (
@@ -23,110 +22,68 @@ type Parameters struct {
 	FileMode          bool
 }
 
-func ParseParams(g *generator.Generator) {
+var (
+	Flags  flag.FlagSet
+	params = Parameters{}
+)
 
-	var params Parameters
+func init() {
+	Flags.StringVar(&params.TemplateDir, "template_dir", "", "path to look for templates")
+	Flags.StringVar(&params.DestinationDir, "destination_dir", "", "base path to write output")
+	Flags.BoolVar(&params.Debug, "debug", false, "if 'true', `protoc` will generate a more verbose output")
+	Flags.BoolVar(&params.All, "all", false, "if 'true', protobuf files without `Service` will also be parsed")
+	Flags.BoolVar(&params.SinglePackageMode, "single_package_mode", false, "if 'true', `protoc` won't accept multiple packages to be compiled at once ('!= from `all`'), but will support `Message` lookup across the imported protobuf dependencies")
+	Flags.BoolVar(&params.FileMode, "file_mode", false, "")
+}
 
-	if parameter := g.Request.GetParameter(); parameter != "" {
-		for _, param := range strings.Split(parameter, ",") {
-			parts := strings.Split(param, "=")
-			if len(parts) != 2 {
-				log.Printf("Err: invalid parameter: %q", param)
-				continue
-			}
-			switch parts[0] {
-			case "template_dir":
-				params.TemplateDir = parts[1]
-			case "destination_dir":
-				params.DestinationDir = parts[1]
-			case "single-package-mode":
-				switch strings.ToLower(parts[1]) {
-				case boolTrue, "t":
-					params.SinglePackageMode = true
-				case boolFalse, "f":
-				default:
-					log.Printf("Err: invalid value for single-package-mode: %q", parts[1])
-				}
-			case "debug":
-				switch strings.ToLower(parts[1]) {
-				case boolTrue, "t":
-					params.Debug = true
-				case boolFalse, "f":
-				default:
-					log.Printf("Err: invalid value for debug: %q", parts[1])
-				}
-			case "all":
-				switch strings.ToLower(parts[1]) {
-				case boolTrue, "t":
-					params.All = true
-				case boolFalse, "f":
-				default:
-					log.Printf("Err: invalid value for debug: %q", parts[1])
-				}
-			case "file-mode":
-				switch strings.ToLower(parts[1]) {
-				case boolTrue, "t":
-					params.FileMode = true
-				case boolFalse, "f":
-				default:
-					log.Printf("Err: invalid value for file-mode: %q", parts[1])
-				}
-			default:
-				log.Printf("Err: unknown parameter: %q", param)
-			}
-		}
-	}
-
+func ParseParams(plugin *protogen.Plugin, file *protogen.File) {
 	tmplMap := make(map[string]*plugin_go.CodeGeneratorResponse_File)
-	concatOrAppend := func(file *plugin_go.CodeGeneratorResponse_File) {
-		if val, ok := tmplMap[file.GetName()]; ok {
-			*val.Content += file.GetContent()
+	concatOrAppend := func(f *plugin_go.CodeGeneratorResponse_File) {
+		if val, ok := tmplMap[f.GetName()]; ok {
+			*val.Content += f.GetContent()
 		} else {
-			tmplMap[file.GetName()] = file
-			g.Response.File = append(g.Response.File, file)
+			tmplMap[f.GetName()] = f
+			g := plugin.NewGeneratedFile(f.GetName(), file.GoImportPath)
+			g.P(f.GetContent())
 		}
 	}
 
 	if params.SinglePackageMode {
 		registry = ggdescriptor.NewRegistry()
 		SetRegistry(registry)
-		if err := registry.Load(g.Request); err != nil {
-			g.Error(err, "registry: failed to load the request")
+		if err := registry.Load(plugin.Request); err != nil {
+			plugin.Error(fmt.Errorf("registry: failed to load the request: %w", err))
 		}
 	}
 
 	// Generate the encoders
-	for _, file := range g.Request.GetProtoFile() {
-		if params.All {
-			if params.SinglePackageMode {
-				if _, err := registry.LookupFile(file.GetName()); err != nil {
-					g.Error(err, "registry: failed to lookup file %q", file.GetName())
-				}
+	if params.All {
+		if params.SinglePackageMode {
+			if _, err := registry.LookupFile(file.Proto.GetName()); err != nil {
+				plugin.Error(fmt.Errorf("registry: failed to lookup file %q: %w", file.Proto.GetName(), err))
 			}
+		}
+		encoder := NewGenericTemplateBasedEncoder(params.TemplateDir, file, params.Debug, params.DestinationDir)
+		for _, tmpl := range encoder.Files() {
+			concatOrAppend(tmpl)
+		}
+
+		return
+	}
+
+	if params.FileMode {
+		if s := file.Proto.GetService(); s != nil && len(s) > 0 {
 			encoder := NewGenericTemplateBasedEncoder(params.TemplateDir, file, params.Debug, params.DestinationDir)
 			for _, tmpl := range encoder.Files() {
 				concatOrAppend(tmpl)
 			}
-
-			continue
 		}
 
-		if params.FileMode {
-			if s := file.GetService(); s != nil && len(s) > 0 {
-				encoder := NewGenericTemplateBasedEncoder(params.TemplateDir, file, params.Debug, params.DestinationDir)
-				for _, tmpl := range encoder.Files() {
-					concatOrAppend(tmpl)
-				}
-			}
+		return
+	}
 
-			continue
-		}
-
-		for _, service := range file.GetService() {
-			encoder := NewGenericServiceTemplateBasedEncoder(params.TemplateDir, service, file, params.Debug, params.DestinationDir)
-			for _, tmpl := range encoder.Files() {
-				concatOrAppend(tmpl)
-			}
-		}
+	encoder := NewGenericTemplateBasedEncoder(params.TemplateDir, file, params.Debug, params.DestinationDir)
+	for _, tmpl := range encoder.Files() {
+		concatOrAppend(tmpl)
 	}
 }

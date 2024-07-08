@@ -2,7 +2,6 @@ package pgghelpers
 
 import (
 	"bytes"
-	"google.golang.org/protobuf/compiler/protogen"
 	"log"
 	"net/url"
 	"os"
@@ -10,6 +9,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"google.golang.org/protobuf/compiler/protogen"
 
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"

@@ -190,12 +190,21 @@ func (e *GenericTemplateBasedEncoder) Files() []*plugin_go.CodeGeneratorResponse
 	for _, templateFilename := range templates {
 		go func(tmpl string) {
 			var translatedFilename, content string
+			log.Println("proto name", e.file.GetName())
+			log.Println("destination dir", e.destinationDir)
 			content, translatedFilename, err = e.buildContent(tmpl)
 			if err != nil {
 				errChan <- err
 				return
 			}
 			filename := translatedFilename[:len(translatedFilename)-len(".tmpl")]
+
+			if e.destinationDir == "" {
+				dir := filepath.Dir(e.file.GetName())
+				if dir != "." {
+					filename = filepath.Join(dir, filename)
+				}
+			}
 
 			resultChan <- &plugin_go.CodeGeneratorResponse_File{
 				Content: &content,
@@ -211,5 +220,6 @@ func (e *GenericTemplateBasedEncoder) Files() []*plugin_go.CodeGeneratorResponse
 			panic(err)
 		}
 	}
+	log.Println(files)
 	return files
 }

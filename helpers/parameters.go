@@ -28,6 +28,7 @@ func ParseParams(g *generator.Generator) {
 	var params Parameters
 
 	if parameter := g.Request.GetParameter(); parameter != "" {
+		log.Println("param", parameter)
 		for _, param := range strings.Split(parameter, ",") {
 			parts := strings.Split(param, "=")
 			if len(parts) != 2 {
@@ -76,6 +77,8 @@ func ParseParams(g *generator.Generator) {
 			}
 		}
 	}
+
+	log.Println("destiantion dir", params.DestinationDir)
 
 	tmplMap := make(map[string]*plugin_go.CodeGeneratorResponse_File)
 	concatOrAppend := func(file *plugin_go.CodeGeneratorResponse_File) {

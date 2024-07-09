@@ -3,6 +3,8 @@ package pgghelpers
 import (
 	"encoding/json"
 	"fmt"
+	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"reflect"
 	"regexp"
 	"strings"
@@ -172,6 +174,7 @@ var ProtoHelpersFuncMap = template.FuncMap{
 	"cppTypeWithPackage":           cppTypeWithPackage,
 	"rustType":                     rustType,
 	"rustTypeWithPackage":          rustTypeWithPackage,
+	"fieldType":                    getFieldType,
 }
 
 var pathMap map[interface{}]*descriptor.SourceCodeInfo_Location
@@ -322,6 +325,49 @@ func init() {
 	for k, v := range sprig.TxtFuncMap() {
 		ProtoHelpersFuncMap[k] = v
 	}
+}
+
+func getFieldType(f *protogen.Field) string {
+	fieldType := ""
+
+	if f.Desc.HasOptionalKeyword() {
+		fieldType += "*"
+	}
+
+	if f.Desc.IsList() {
+		fieldType += "[]"
+	}
+
+	switch f.Desc.Kind() {
+	case protoreflect.BoolKind:
+		fieldType += "bool"
+	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
+		fieldType += "int32"
+	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
+		fieldType += "int64"
+	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
+		fieldType += "uint32"
+	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
+		fieldType += "uint64"
+	case protoreflect.FloatKind:
+		fieldType += "float32"
+	case protoreflect.DoubleKind:
+		fieldType += "float64"
+	case protoreflect.StringKind:
+		fieldType += "string"
+	case protoreflect.BytesKind:
+		fieldType += "[]byte"
+	case protoreflect.MessageKind:
+		fieldType += fmt.Sprintf("*%s", f.Message.Desc.Name())
+	case protoreflect.EnumKind:
+		fieldType += string(f.Enum.Desc.Name())
+	case protoreflect.GroupKind:
+		fieldType += "group"
+	default:
+		fieldType += "unknown"
+	}
+
+	return strings.ReplaceAll(fieldType, "**", "*")
 }
 
 func getProtoFile(name string) *ggdescriptor.File {
@@ -493,16 +539,17 @@ func fieldMapValueType(f *descriptor.FieldDescriptorProto, m *descriptor.Descrip
 //
 // example:
 // ```proto
-// message GetArticleResponse {
-//	Article article = 1;
-//	message Storage {
-//		  string code = 1;
+//
+//	message GetArticleResponse {
+//		Article article = 1;
+//		message Storage {
+//			  string code = 1;
+//		}
+//		repeated Storage storages = 2;
 //	}
-//	repeated Storage storages = 2;
-// }
+//
 // ```
 // Then the type of `storages` is `GetArticleResponse_Storage` for the go language.
-//
 func goTypeWithGoPackage(p *descriptor.FileDescriptorProto, f *descriptor.FieldDescriptorProto) string {
 	pkg := ""
 	if *f.Type == descriptor.FieldDescriptorProto_TYPE_MESSAGE || *f.Type == descriptor.FieldDescriptorProto_TYPE_ENUM {
@@ -772,7 +819,7 @@ func goTypeWithEmbedded(pkg string, f *descriptor.FieldDescriptorProto, p *descr
 	}
 }
 
-//Deprecated. Instead use goTypeWithEmbedded
+// Deprecated. Instead use goTypeWithEmbedded
 func goType(pkg string, f *descriptor.FieldDescriptorProto) string {
 	if pkg != "" {
 		pkg = pkg + "."

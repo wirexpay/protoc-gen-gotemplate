@@ -10,6 +10,8 @@ import (
 	"text/template"
 	"time"
 
+	"google.golang.org/protobuf/compiler/protogen"
+
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"
 )
@@ -17,7 +19,7 @@ import (
 type GenericTemplateBasedEncoder struct {
 	templateDir    string
 	service        *descriptor.ServiceDescriptorProto
-	file           *descriptor.FileDescriptorProto
+	file           *protogen.File
 	enum           []*descriptor.EnumDescriptorProto
 	debug          bool
 	destinationDir string
@@ -31,7 +33,7 @@ type Ast struct {
 	PWD            string                             `json:"pwd"`
 	Debug          bool                               `json:"debug"`
 	DestinationDir string                             `json:"destination-dir"`
-	File           *descriptor.FileDescriptorProto    `json:"file"`
+	File           *protogen.File                     `json:"file"`
 	RawFilename    string                             `json:"raw-filename"`
 	Filename       string                             `json:"filename"`
 	TemplateDir    string                             `json:"template-dir"`
@@ -39,36 +41,36 @@ type Ast struct {
 	Enum           []*descriptor.EnumDescriptorProto  `json:"enum"`
 }
 
-func NewGenericServiceTemplateBasedEncoder(templateDir string, service *descriptor.ServiceDescriptorProto, file *descriptor.FileDescriptorProto, debug bool, destinationDir string) (e *GenericTemplateBasedEncoder) {
+func NewGenericServiceTemplateBasedEncoder(templateDir string, service *descriptor.ServiceDescriptorProto, file *protogen.File, debug bool, destinationDir string) (e *GenericTemplateBasedEncoder) {
 	e = &GenericTemplateBasedEncoder{
 		service:        service,
 		file:           file,
 		templateDir:    templateDir,
 		debug:          debug,
 		destinationDir: destinationDir,
-		enum:           file.GetEnumType(),
+		enum:           file.Proto.GetEnumType(),
 	}
 	if debug {
-		log.Printf("new encoder: file=%q service=%q template-dir=%q", file.GetName(), service.GetName(), templateDir)
+		log.Printf("new encoder: file=%q service=%q template-dir=%q", file.Proto.GetName(), service.GetName(), templateDir)
 	}
-	InitPathMap(file)
+	InitPathMap(file.Proto)
 
 	return
 }
 
-func NewGenericTemplateBasedEncoder(templateDir string, file *descriptor.FileDescriptorProto, debug bool, destinationDir string) (e *GenericTemplateBasedEncoder) {
+func NewGenericTemplateBasedEncoder(templateDir string, file *protogen.File, debug bool, destinationDir string) (e *GenericTemplateBasedEncoder) {
 	e = &GenericTemplateBasedEncoder{
 		service:        nil,
 		file:           file,
 		templateDir:    templateDir,
-		enum:           file.GetEnumType(),
+		enum:           file.Proto.GetEnumType(),
 		debug:          debug,
 		destinationDir: destinationDir,
 	}
 	if debug {
-		log.Printf("new encoder: file=%q template-dir=%q", file.GetName(), templateDir)
+		log.Printf("new encoder: file=%q template-dir=%q", file.Proto.GetName(), templateDir)
 	}
-	InitPathMap(file)
+	InitPathMap(file.Proto)
 
 	return
 }
@@ -196,6 +198,13 @@ func (e *GenericTemplateBasedEncoder) Files() []*plugin_go.CodeGeneratorResponse
 				return
 			}
 			filename := translatedFilename[:len(translatedFilename)-len(".tmpl")]
+
+			if e.destinationDir == "" {
+				dir := filepath.Dir(e.file.Proto.GetName())
+				if dir != "." {
+					filename = filepath.Join(dir, filename)
+				}
+			}
 
 			resultChan <- &plugin_go.CodeGeneratorResponse_File{
 				Content: &content,

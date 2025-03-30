@@ -77,7 +77,8 @@ var ProtoHelpersFuncMap = template.FuncMap{
 	},
 	"camelCase": func(s string) string {
 		if len(s) > 1 {
-			return xstrings.ToCamelCase(s)
+			res := xstrings.ToCamelCase(s)
+			return strings.ToUpper(res[:1]) + res[1:]
 		}
 
 		return strings.ToUpper(s[:1])

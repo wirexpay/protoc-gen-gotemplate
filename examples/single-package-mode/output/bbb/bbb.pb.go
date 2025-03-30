@@ -6,9 +6,11 @@
 Package bbb is a generated protocol buffer package.
 
 It is generated from these files:
+
 	bbb/bbb.proto
 
 It has these top-level messages:
+
 	BbbRequest
 	BbbReply
 */
@@ -17,7 +19,7 @@ package bbb
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
-import the_aaa_package "moul.io/protoc-gen-gotemplate/examples/single-package-mode/output/aaa"
+import the_aaa_package "github.com/wirexpay/protoc-gen-gotemplate/examples/single-package-mode/output/aaa"
 
 import (
 	context "golang.org/x/net/context"

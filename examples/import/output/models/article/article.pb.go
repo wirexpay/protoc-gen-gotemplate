@@ -9,7 +9,7 @@ package article
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	common "moul.io/protoc-gen-gotemplate/examples/import/output/models/common"
+	common "github.com/wirexpay/protoc-gen-gotemplate/examples/import/output/models/common"
 	reflect "reflect"
 	sync "sync"
 )

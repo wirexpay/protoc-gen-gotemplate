@@ -5,7 +5,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	pb "moul.io/protoc-gen-gotemplate/examples/go-kit/services/session/gen/pb"
+	pb "github.com/wirexpay/protoc-gen-gotemplate/examples/go-kit/services/session/gen/pb"
 )
 
 type Service struct{}

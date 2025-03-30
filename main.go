@@ -1,9 +1,9 @@
-package main // import "moul.io/protoc-gen-gotemplate"
+package main // import "github.com/wirexpay/protoc-gen-gotemplate"
 
 import (
+	pgghelpers "github.com/wirexpay/protoc-gen-gotemplate/helpers"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/types/pluginpb"
-	pgghelpers "moul.io/protoc-gen-gotemplate/helpers"
 )
 
 func main() {

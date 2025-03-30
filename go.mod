@@ -1,4 +1,4 @@
-module moul.io/protoc-gen-gotemplate
+module github.com/wirexpay/protoc-gen-gotemplate
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible

@@ -47,7 +47,20 @@ func ParseParams(plugin *protogen.Plugin, file *protogen.File) {
 		}
 	}
 
-	if params.Files != "" && !strings.Contains(params.Files, file.Proto.GetName()) {
+	allFiles := strings.Split(params.Files, " ")
+	allowedFile := false
+	if len(allFiles) > 0 {
+		for _, f := range allFiles {
+			if strings.Contains(file.Proto.GetName(), f) {
+				allowedFile = true
+				break
+			}
+		}
+	} else {
+		allowedFile = true
+	}
+
+	if !allowedFile {
 		return
 	}
 

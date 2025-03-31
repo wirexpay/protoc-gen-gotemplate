@@ -176,6 +176,45 @@ var ProtoHelpersFuncMap = template.FuncMap{
 	"rustType":                     rustType,
 	"rustTypeWithPackage":          rustTypeWithPackage,
 	"fieldType":                    getFieldType,
+	"isMessage": func(f *descriptor.FieldDescriptorProto) bool {
+		return *f.Type == descriptor.FieldDescriptorProto_TYPE_MESSAGE
+	},
+	"isMessageArray": func(f *descriptor.FieldDescriptorProto) bool {
+		return *f.Type == descriptor.FieldDescriptorProto_TYPE_MESSAGE && f.Label != nil && *f.Label == descriptor.FieldDescriptorProto_LABEL_REPEATED
+	},
+	"isOneOf": func(f *descriptor.FieldDescriptorProto) bool {
+		return f.OneofIndex != nil && (f.Proto3Optional == nil || *f.Proto3Optional == false)
+	},
+	"oneOfFiledName": func(message *descriptor.DescriptorProto, field *descriptor.FieldDescriptorProto) string {
+		if field.OneofIndex == nil {
+			return ""
+		}
+		idx := int(field.GetOneofIndex())
+		if idx >= len(message.OneofDecl) {
+			return ""
+		}
+
+		if message.OneofDecl[idx].Name == nil {
+			return ""
+		}
+
+		return *message.OneofDecl[idx].Name
+	},
+	"oneOfFiledType": func(message *descriptor.DescriptorProto, field *descriptor.FieldDescriptorProto) string {
+		if field.OneofIndex == nil {
+			return ""
+		}
+		idx := int(field.GetOneofIndex())
+		if idx >= len(message.OneofDecl) {
+			return ""
+		}
+
+		if message.Name == nil {
+			return ""
+		}
+
+		return *message.Name
+	},
 }
 
 var pathMap map[interface{}]*descriptor.SourceCodeInfo_Location
@@ -830,40 +869,64 @@ func goType(pkg string, f *descriptor.FieldDescriptorProto) string {
 		if *f.Label == descriptor.FieldDescriptorProto_LABEL_REPEATED {
 			return "[]float64"
 		}
+		if f.Proto3Optional != nil && *f.Proto3Optional {
+			return "*float64"
+		}
 		return "float64"
 	case descriptor.FieldDescriptorProto_TYPE_FLOAT:
 		if *f.Label == descriptor.FieldDescriptorProto_LABEL_REPEATED {
 			return "[]float32"
+		}
+		if f.Proto3Optional != nil && *f.Proto3Optional {
+			return "*float32"
 		}
 		return "float32"
 	case descriptor.FieldDescriptorProto_TYPE_INT64:
 		if *f.Label == descriptor.FieldDescriptorProto_LABEL_REPEATED {
 			return "[]int64"
 		}
+		if f.Proto3Optional != nil && *f.Proto3Optional {
+			return "*int64"
+		}
 		return "int64"
 	case descriptor.FieldDescriptorProto_TYPE_UINT64:
 		if *f.Label == descriptor.FieldDescriptorProto_LABEL_REPEATED {
 			return "[]uint64"
+		}
+		if f.Proto3Optional != nil && *f.Proto3Optional {
+			return "*uint64"
 		}
 		return "uint64"
 	case descriptor.FieldDescriptorProto_TYPE_INT32:
 		if *f.Label == descriptor.FieldDescriptorProto_LABEL_REPEATED {
 			return "[]int32"
 		}
+		if f.Proto3Optional != nil && *f.Proto3Optional {
+			return "*int32"
+		}
 		return "int32"
 	case descriptor.FieldDescriptorProto_TYPE_UINT32:
 		if *f.Label == descriptor.FieldDescriptorProto_LABEL_REPEATED {
 			return "[]uint32"
+		}
+		if f.Proto3Optional != nil && *f.Proto3Optional {
+			return "*uint32"
 		}
 		return "uint32"
 	case descriptor.FieldDescriptorProto_TYPE_BOOL:
 		if *f.Label == descriptor.FieldDescriptorProto_LABEL_REPEATED {
 			return "[]bool"
 		}
+		if f.Proto3Optional != nil && *f.Proto3Optional {
+			return "*bool"
+		}
 		return "bool"
 	case descriptor.FieldDescriptorProto_TYPE_STRING:
 		if *f.Label == descriptor.FieldDescriptorProto_LABEL_REPEATED {
 			return "[]string"
+		}
+		if f.Proto3Optional != nil && *f.Proto3Optional {
+			return "*string"
 		}
 		return "string"
 	case descriptor.FieldDescriptorProto_TYPE_MESSAGE:
@@ -875,9 +938,12 @@ func goType(pkg string, f *descriptor.FieldDescriptorProto) string {
 		if *f.Label == descriptor.FieldDescriptorProto_LABEL_REPEATED {
 			return "[]byte"
 		}
+		if f.Proto3Optional != nil && *f.Proto3Optional {
+			return "*byte"
+		}
 		return "byte"
 	case descriptor.FieldDescriptorProto_TYPE_ENUM:
-		return fmt.Sprintf("*%s%s", pkg, shortType(*f.TypeName))
+		return fmt.Sprintf("%s%s", pkg, shortType(*f.TypeName))
 	default:
 		return "interface{}"
 	}

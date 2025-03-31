@@ -1,6 +1,6 @@
 GOPKG ?= moul.io/protoc-gen-gotemplate
 DOCKER_IMAGE ?= moul/protoc-gen-gotemplate
-GOBINS ?= . ./cmd/web-editor
+GOBINS ?= .
 GOLIBS ?= .
 
 all: test install

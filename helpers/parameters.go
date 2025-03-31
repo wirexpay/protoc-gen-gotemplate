@@ -3,6 +3,7 @@ package pgghelpers
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"
 	ggdescriptor "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/descriptor"
@@ -12,6 +13,7 @@ import (
 type Parameters struct {
 	TemplateDir       string
 	DestinationDir    string
+	Files             string
 	Debug             bool
 	All               bool
 	SinglePackageMode bool
@@ -26,6 +28,7 @@ var (
 func init() {
 	Flags.StringVar(&params.TemplateDir, "template_dir", "", "path to look for templates")
 	Flags.StringVar(&params.DestinationDir, "destination_dir", "", "base path to write output")
+	Flags.StringVar(&params.Files, "files", "", "files to process, with extensions")
 	Flags.BoolVar(&params.Debug, "debug", false, "if 'true', `protoc` will generate a more verbose output")
 	Flags.BoolVar(&params.All, "all", false, "if 'true', protobuf files without `Service` will also be parsed")
 	Flags.BoolVar(&params.SinglePackageMode, "single_package_mode", false, "if 'true', `protoc` won't accept multiple packages to be compiled at once ('!= from `all`'), but will support `Message` lookup across the imported protobuf dependencies")
@@ -42,6 +45,10 @@ func ParseParams(plugin *protogen.Plugin, file *protogen.File) {
 			g := plugin.NewGeneratedFile(f.GetName(), file.GoImportPath)
 			g.P(f.GetContent())
 		}
+	}
+
+	if params.Files != "" && !strings.Contains(params.Files, file.Proto.GetName()) {
+		return
 	}
 
 	if params.SinglePackageMode {

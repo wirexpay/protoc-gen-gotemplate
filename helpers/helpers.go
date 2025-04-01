@@ -182,6 +182,9 @@ var ProtoHelpersFuncMap = template.FuncMap{
 	"isMessageArray": func(f *descriptor.FieldDescriptorProto) bool {
 		return *f.Type == descriptor.FieldDescriptorProto_TYPE_MESSAGE && f.Label != nil && *f.Label == descriptor.FieldDescriptorProto_LABEL_REPEATED
 	},
+	"isEnumArray": func(f *descriptor.FieldDescriptorProto) bool {
+		return *f.Type == descriptor.FieldDescriptorProto_TYPE_ENUM && f.Label != nil && *f.Label == descriptor.FieldDescriptorProto_LABEL_REPEATED
+	},
 	"isOneOf": func(f *descriptor.FieldDescriptorProto) bool {
 		return f.OneofIndex != nil && (f.Proto3Optional == nil || *f.Proto3Optional == false)
 	},

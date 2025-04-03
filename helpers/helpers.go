@@ -218,6 +218,14 @@ var ProtoHelpersFuncMap = template.FuncMap{
 
 		return *message.Name
 	},
+	"getMethodArgType": func(arg *string) string {
+		if arg == nil {
+			return "nil"
+		}
+
+		parts := strings.Split(*arg, ".")
+		return parts[len(parts)-1]
+	},
 }
 
 var pathMap map[interface{}]*descriptor.SourceCodeInfo_Location

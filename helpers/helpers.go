@@ -3,13 +3,14 @@ package pgghelpers
 import (
 	"encoding/json"
 	"fmt"
-	"google.golang.org/protobuf/compiler/protogen"
-	"google.golang.org/protobuf/reflect/protoreflect"
 	"reflect"
 	"regexp"
 	"strings"
 	"sync"
 	"text/template"
+
+	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/Masterminds/sprig"
 	"github.com/golang/protobuf/proto" // nolint:staticcheck
@@ -187,6 +188,9 @@ var ProtoHelpersFuncMap = template.FuncMap{
 	},
 	"isEnumArray": func(f *descriptor.FieldDescriptorProto) bool {
 		return *f.Type == descriptor.FieldDescriptorProto_TYPE_ENUM && f.Label != nil && *f.Label == descriptor.FieldDescriptorProto_LABEL_REPEATED
+	},
+	"isEnum": func(f *descriptor.FieldDescriptorProto) bool {
+		return *f.Type == descriptor.FieldDescriptorProto_TYPE_ENUM
 	},
 	"isOneOf": func(f *descriptor.FieldDescriptorProto) bool {
 		return f.OneofIndex != nil && (f.Proto3Optional == nil || *f.Proto3Optional == false)
